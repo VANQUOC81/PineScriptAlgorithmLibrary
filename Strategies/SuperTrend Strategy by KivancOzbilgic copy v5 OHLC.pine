@@ -1,0 +1,88 @@
+//@version=5
+// below settings for everything except futures
+strategy("SuperTrend Strategy by KivancOzbilgic copy v5 OHLC", overlay=true, initial_capital = 12000, default_qty_type=strategy.percent_of_equity, default_qty_value=83, slippage = 15, pyramiding = 0, commission_type = strategy.commission.percent,  commission_value = 0.001)
+// below settings for futures
+//strategy("SuperTrend Strategy by KivancOzbilgic copy v5 HA", overlay=true, initial_capital = 32000, default_qty_type=strategy.percent_of_equity, default_qty_value=83, slippage = 15, pyramiding = 0, commission_type = strategy.commission.percent,  commission_value = 0.001)
+
+// initialize once
+// varip bool buySignalLastState = false
+// varip bool sellSignalLastState = false
+[hkOpen, hkHigh, hkLow, hkClose] = request.security(ticker.heikinashi(syminfo.tickerid), timeframe.period, [open, high, low, close])
+
+// Supertrend 1
+src = (hkHigh + hkLow) / 2
+atr = ta.atr(10) // TODO vind de juiste optimizaties parameters voor atr. Er bestaat een tradingview optimizer
+Multiplier = 3.0
+
+up = src - Multiplier * atr
+up1 = nz(up[1], up)
+up := hkClose[1] > up1 ? math.max(up, up1) : up
+dn = src + Multiplier * atr
+dn1 = nz(dn[1], dn)
+dn := hkClose[1] < dn1 ? math.min(dn, dn1) : dn
+
+// determine trend, 1 is up and -1 is down
+trend = 1
+trend := nz(trend[1], trend)
+trend := trend == -1 and hkClose > dn1 ? 1 : trend == 1 and hkClose < up1 ? -1 : trend
+
+buySignal = trend == 1 and trend[1] == -1
+sellSignal = trend == -1 and trend[1] == 1
+
+// Supertrend 2
+atr2 = ta.atr(14)
+Multiplier2 = 2.0
+
+up2 = src - Multiplier2 * atr2
+up21 = nz(up2[1], up2)
+up2 := hkClose[1] > up21 ? math.max(up2, up21) : up2
+dn2 = src + Multiplier2 * atr2
+dn21 = nz(dn2[1], dn2)
+dn2 := hkClose[1] < dn21 ? math.min(dn2, dn21) : dn2
+
+// determine trend, 1 is up and -1 is down
+trend2 = 1
+trend2 := nz(trend2[1], trend2)
+trend2 := trend2 == -1 and hkClose > dn21 ? 1 : trend2 == 1 and hkClose < up21 ? -1 : trend2
+
+buySignal2 = trend2 == 1 and trend2[1] == -1
+sellSignal2 = trend2 == -1 and trend2[1] == 1
+
+
+// start_time = timestamp("2023-05-12T00:00:00")
+// end_time = timestamp("2023-05-13T00:00:00")
+
+start_time = time
+end_time = time
+
+if time >= start_time and time <= end_time
+    // reason why below logic does not yield better results:
+    // lot of false signals when trend is waving nicely
+    // sometimes big drawdown because can take a while before double signal exit appears
+    // it does make less trades but net profit is also lower
+    // if buySignal
+    //     // reset last state sell signal
+    //     sellSignalLastState := false
+    //     // store last state
+    //     buySignalLastState := buySignal
+
+    // if buySignal2 and buySignalLastState
+    //     strategy.entry("BSLastState: " + str.tostring(buySignalLastState), strategy.long)
+
+    // if sellSignal
+    //     // reset last state buy signal
+    //     buySignalLastState := false
+    //         // store last state
+    //     sellSignalLastState := sellSignal
+
+    // if sellSignal2 and sellSignalLastState
+    //     strategy.entry("SSLastState: " + str.tostring(sellSignalLastState), strategy.short)
+
+    // original logic
+    if buySignal
+        //strategy.close("Short")
+        strategy.entry("Buy", strategy.long)
+
+    if sellSignal
+        //strategy.close("Buy")
+        strategy.entry("Short", strategy.short)
